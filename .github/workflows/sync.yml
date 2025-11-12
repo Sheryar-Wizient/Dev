@@ -1,10 +1,10 @@
 name: Sync to Another Repository
 
 on:
-  push:
-    branches:
-      - main  # or dev, or any branch you want to trigger sync
-  #workflow_dispatch:
+ # push:
+  #  branches:
+ #     - main  # or dev, or any branch you want to trigger sync
+  workflow_dispatch:
 
 #concurrency:
 #  group: sync-${{ github.ref }}   # all pushes to same branch share same "slot"
