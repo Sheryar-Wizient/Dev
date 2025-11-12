@@ -1,20 +1,42 @@
-name: Jekyll site CI
+name: Sync to Another Repository
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main  # or dev, or any branch you want to trigger sync
+  #workflow_dispatch:
+
+#concurrency:
+#  group: sync-${{ github.ref }}   # all pushes to same branch share same "slot"
+#  cancel-in-progress: true 
 
 jobs:
-  build:
-
+  sync:
     runs-on: ubuntu-latest
+    environment: sync-approval 
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the site in the jekyll/builder container
-      run: |
-        docker run \
-        -v ${{ github.workspace }}:/srv/jekyll -v ${{ github.workspace }}/_site:/srv/jekyll/_site \
-        jekyll/builder:latest /bin/bash -c "chmod -R 777 /srv/jekyll && jekyll build --future"
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push files to target repository
+        env:
+          TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}
+        run: |
+          git clone https://x-access-token:${TOKEN}@github.com/Sheryar-Wizient/Prod.git target-repo
+          rsync -av --delete --exclude '.git' --exclude '.github/workflows' ./ target-repo/
+          cd target-repo
+          git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Sync from source repo $(date)"
+            git push origin main  # or the branch you want
+          fi
